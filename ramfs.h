@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include <string.h>
+#include <string.h>//adding this header to make the project compatible with macOS
 
 #define O_APPEND 02000
 #define O_CREAT 0100
@@ -12,6 +12,9 @@
 #define SEEK_CUR 1
 #define SEEK_END 2
 
+//To make the project compatible with macOS
+//typedef int64_t ssize_t;
+//typedef uint64_t size_t;
 typedef int64_t off_t;
 
 int ropen(const char *pathname, int flags);
