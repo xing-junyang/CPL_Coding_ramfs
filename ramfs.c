@@ -1,6 +1,19 @@
 #include "ramfs.h"
+#include <stdbool.h>
 
 /* modify this file freely */
+
+typedef struct File{
+    /* Common properties */
+    bool isDirectory;
+    char *fileName;
+    /* Directory properties */
+    bool haveChild;
+    struct File *firstChildFile;
+    /* File properties */
+    int offset;
+    struct File *nextFile;
+}file;
 
 int ropen(const char *pathname, int flags) {
     // TODO();
