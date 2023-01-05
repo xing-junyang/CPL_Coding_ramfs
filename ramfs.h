@@ -11,8 +11,8 @@
 #define SEEK_CUR 1
 #define SEEK_END 2
 
-typedef int64_t ssize_t;
-typedef uint64_t size_t;
+//typedef int64_t ssize_t;
+//typedef uint64_t size_t;
 typedef int64_t off_t;
 
 int ropen(const char *pathname, int flags);
