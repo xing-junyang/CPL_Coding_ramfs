@@ -9,7 +9,7 @@ run: ramfs
 	./ramfs
 
 gdb: ramfs
-	gdb ./ramfs
+	gdb ramfs
 
 git:
 	git add -A
