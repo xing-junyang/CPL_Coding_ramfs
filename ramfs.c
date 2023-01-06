@@ -17,7 +17,7 @@ typedef struct File {
     struct File *prevFile;
     struct File *nextFile;
     /* File properties */
-    int fileSize;
+    long long fileSize;
     void *fileContent;
 } file;
 
@@ -26,13 +26,13 @@ typedef struct FileHandle {
     bool wr;
     bool isDirectory;
     file *targetFile;
-    int offset;
+    long long offset;
 } handle;
 handle *handleMap[MAX_FILE_HANDLE];
 
 typedef struct Path {
     enum {
-        FILE, DIRECTORY, ERROR
+        FILE, ERROR
     } pathType;
     char **name;
     int nameCount;
@@ -60,19 +60,14 @@ void destroyPath(path *src) {
 
 path *analyzePath(const char *pathname) {
     path *ret = malloc(sizeof(*ret));
+    ret->name = malloc(sizeof(*ret->name) * 1024);
+    ret->nameCount = 0;
+    ret->pathType = FILE;
+
     int len = (int) strlen(pathname);
     if (pathname[0] != '/') {
         ret->pathType = ERROR;
         return ret;
-    }
-
-    ret->name = malloc(sizeof(*ret->name) * 1024);
-    ret->nameCount = 0;
-
-    if (pathname[len - 1] == '/') {
-        ret->pathType = DIRECTORY;
-    } else {
-        ret->pathType = FILE;
     }
 
     char *tmp = malloc(sizeof(char) * 1024);
@@ -117,6 +112,7 @@ int findEmptyHandle() {
             return i;
         }
     }
+    return -1;//impossible.
 }
 
 file *findFile(const file *directory, const char *name) {
@@ -153,6 +149,7 @@ file *createFile(file *directory, char *fileName, bool isDirectory) {
     return ret;
 }
 
+
 int ropen(const char *pathname, int flags) {
     path *nowPath = analyzePath(pathname);
     if (nowPath->pathType == ERROR) {
@@ -162,17 +159,9 @@ int ropen(const char *pathname, int flags) {
 
     file *target = root;
 
-    bool isExistFile = 0;
+    bool newCreatedFile = 0;
 
-    if (nowPath->pathType == DIRECTORY) {
-        for (int i = 0; i < nowPath->nameCount; i++) {
-            target = findFile(target, nowPath->name[i]);
-            if (target == NULL) {
-                destroyPath(nowPath);
-                return -1;
-            }
-        }
-    } else if (nowPath->pathType == FILE) {
+    if (flags & O_CREAT) {
         for (int i = 0; i < nowPath->nameCount - 1; i++) {
             target = findFile(target, nowPath->name[i]);
             if (target == NULL) {
@@ -180,14 +169,19 @@ int ropen(const char *pathname, int flags) {
                 return -1;
             }
         }
-        if ((flags & O_CREAT) && (findFile(target, nowPath->name[nowPath->nameCount - 1]) == NULL)) {
+        if (findFile(target, nowPath->name[nowPath->nameCount - 1]) == NULL) {
             target = createFile(target, nowPath->name[nowPath->nameCount - 1], 0);
-        } else if (findFile(target, nowPath->name[nowPath->nameCount - 1]) == NULL) {
-            destroyPath(nowPath);
-            return -1;
+            newCreatedFile = 1;
         } else {
             target = findFile(target, nowPath->name[nowPath->nameCount - 1]);
-            isExistFile = 1;
+        }
+    } else {
+        for (int i = 0; i < nowPath->nameCount; i++) {
+            target = findFile(target, nowPath->name[i]);
+            if (target == NULL) {
+                destroyPath(nowPath);
+                return -1;
+            }
         }
     }
 
@@ -195,6 +189,7 @@ int ropen(const char *pathname, int flags) {
     handleMap[ret] = malloc(sizeof(*(handleMap[ret])));
 
     handleMap[ret]->targetFile = target;
+    handleMap[ret]->isDirectory = target->isDirectory;
 
     handleMap[ret]->rd = 1;
     handleMap[ret]->wr = 0;
@@ -207,7 +202,7 @@ int ropen(const char *pathname, int flags) {
         handleMap[ret]->wr = 1;
     }
 
-    if (flags & O_TRUNC && isExistFile && handleMap[ret]->wr == 1) {
+    if (flags & O_TRUNC && (!newCreatedFile) && handleMap[ret]->wr == 1 && (!handleMap[ret]->isDirectory)) {
         memset(target->fileContent, 0, target->fileSize);
     }
 
@@ -226,6 +221,7 @@ int rclose(int fd) {
         return -1;
     } else {
         free(handleMap[fd]);
+        handleMap[fd] = NULL;
         return 0;
     }
 }
@@ -239,12 +235,65 @@ ssize_t rread(int fd, void *buf, size_t count) {
 }
 
 off_t rseek(int fd, off_t offset, int whence) {
-    // TODO();
-    if
+    if (handleMap[fd] == NULL) {
+        return -1;
+    }
+    switch (whence) {
+        case SEEK_SET:
+            if (offset < 0) {
+                return -1;
+            }
+            handleMap[fd]->offset = offset;
+            break;
+        case SEEK_CUR:
+            if (handleMap[fd]->offset + offset < 0) {
+                return -1;
+            }
+            handleMap[fd]->offset += offset;
+            break;
+        case SEEK_END:
+            if (handleMap[fd]->targetFile->fileSize + offset < 0) {
+                return -1;
+            }
+            handleMap[fd]->offset = handleMap[fd]->targetFile->fileSize + offset;
+            break;
+        default:
+            break;
+    }
+    return handleMap[fd]->offset;
 }
 
 int rmkdir(const char *pathname) {
     // TODO();
+    path *nowPath = analyzePath(pathname);
+
+    if (nowPath->pathType == ERROR) {
+        destroyPath(nowPath);
+        return -1;
+    }
+
+    file *target = root;
+
+    for (int i = 0; i < nowPath->nameCount - 1; i++) {
+        target = findFile(target, nowPath->name[i]);
+        if (target == NULL) {
+            destroyPath(nowPath);
+            return -1;
+        }
+    }
+
+    if (findFile(target, nowPath->name[nowPath->nameCount - 1]) != NULL) {
+        destroyPath(nowPath);
+        return -1;
+    }
+
+    if (createFile(target, nowPath->name[nowPath->nameCount - 1], 1) != NULL) {
+        destroyPath(nowPath);
+        return 0;
+    }
+
+    destroyPath(nowPath);
+    return -1;
 }
 
 int rrmdir(const char *pathname) {
