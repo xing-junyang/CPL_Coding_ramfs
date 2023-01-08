@@ -17,7 +17,7 @@ typedef struct File {
     struct File *prevFile;
     struct File *nextFile;
     /* File properties */
-    long long fileSize;
+    size_t fileSize;
     void *fileContent;
 } file;
 
@@ -26,7 +26,7 @@ typedef struct FileHandle {
     bool wr;
     bool isDirectory;
     file *targetFile;
-    long long offset;
+    size_t offset;
 } handle;
 handle *handleMap[MAX_FILE_HANDLE];
 
@@ -39,6 +39,10 @@ typedef struct Path {
 } path;
 
 file *root;
+
+size_t max(size_t a, size_t b) { return a > b ? a : b; }
+
+size_t min(size_t a, size_t b) { return a < b ? a : b; }
 
 bool checkNameValidity(const char *str) {
     int len = (int) strlen(str);
@@ -253,11 +257,40 @@ int rclose(int fd) {
 }
 
 ssize_t rwrite(int fd, const void *buf, size_t count) {
-    // TODO();
+    if (handleMap[fd] == NULL || handleMap[fd]->isDirectory || (!handleMap[fd]->rd)) {
+        return -1;
+    }
+
+    file *target = handleMap[fd]->targetFile;
+
+    size_t fileSizeUpdate = max(target->fileSize, handleMap[fd]->offset + count);
+    void *fileContentUpdate = malloc(fileSizeUpdate);
+    memset(fileContentUpdate, 0, fileSizeUpdate);
+
+    if (target->fileContent != NULL) {
+        memcpy(fileContentUpdate, target->fileContent, target->fileSize);
+    }
+    memcpy(fileContentUpdate + handleMap[fd]->offset, buf, count);
+
+    target->fileSize = fileSizeUpdate;
+    free(target->fileContent);
+    target->fileContent = fileContentUpdate;
+
+    return count;
 }
 
 ssize_t rread(int fd, void *buf, size_t count) {
-    // TODO();
+    if (handleMap[fd] == NULL || handleMap[fd]->isDirectory || (!handleMap[fd]->rd)) {
+        return -1;
+    }
+
+    file const *target = handleMap[fd]->targetFile;
+
+    size_t readSize = min(count, max(0, target->fileSize - handleMap[fd]->offset));
+    memcpy(buf, target->fileContent + handleMap[fd]->offset, readSize);
+    handleMap[fd]->offset += count;
+
+    return readSize;
 }
 
 off_t rseek(int fd, off_t offset, int whence) {
@@ -272,13 +305,13 @@ off_t rseek(int fd, off_t offset, int whence) {
             handleMap[fd]->offset = offset;
             break;
         case SEEK_CUR:
-            if (handleMap[fd]->offset + offset < 0) {
+            if ((off_t) handleMap[fd]->offset + offset < 0) {
                 return -1;
             }
             handleMap[fd]->offset += offset;
             break;
         case SEEK_END:
-            if (handleMap[fd]->targetFile->fileSize + offset < 0) {
+            if ((off_t) handleMap[fd]->targetFile->fileSize + offset < 0) {
                 return -1;
             }
             handleMap[fd]->offset = handleMap[fd]->targetFile->fileSize + offset;
@@ -286,7 +319,7 @@ off_t rseek(int fd, off_t offset, int whence) {
         default:
             break;
     }
-    return handleMap[fd]->offset;
+    return (off_t) handleMap[fd]->offset;
 }
 
 int rmkdir(const char *pathname) {
@@ -322,7 +355,6 @@ int rmkdir(const char *pathname) {
 }
 
 int rrmdir(const char *pathname) {
-    // TODO();
     path *nowPath = analyzePath(pathname);
 
     if (nowPath->pathType == ERROR) {
@@ -374,7 +406,6 @@ int runlink(const char *pathname) {
 }
 
 void init_ramfs() {
-    // TODO();
     /* Initializing root directory */
     root = malloc(sizeof(*root));
     root->isDirectory = 1;
