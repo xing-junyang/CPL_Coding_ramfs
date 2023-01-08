@@ -149,6 +149,32 @@ file *createFile(file *directory, char *fileName, bool isDirectory) {
     return ret;
 }
 
+int removeFile(file *target) {
+    if (target == NULL) {
+        return -1;
+    }
+
+    file *directory = target->fatherFile;
+
+    if (directory->firstChildFile == target) {
+        directory->firstChildFile = target->nextFile;
+        if (target->nextFile == NULL) {
+            directory->haveChild = false;
+        } else {
+            directory->haveChild = true;
+            target->nextFile->prevFile = directory;
+        }
+        free(target);
+        return 0;
+    } else {
+        target->prevFile->nextFile = target->nextFile;
+        if (target->nextFile != NULL) {
+            target->nextFile->prevFile = target->prevFile;
+        }
+        free(target);
+        return 0;
+    }
+}
 
 int ropen(const char *pathname, int flags) {
     path *nowPath = analyzePath(pathname);
@@ -264,7 +290,6 @@ off_t rseek(int fd, off_t offset, int whence) {
 }
 
 int rmkdir(const char *pathname) {
-    // TODO();
     path *nowPath = analyzePath(pathname);
 
     if (nowPath->pathType == ERROR) {
@@ -298,10 +323,54 @@ int rmkdir(const char *pathname) {
 
 int rrmdir(const char *pathname) {
     // TODO();
+    path *nowPath = analyzePath(pathname);
+
+    if (nowPath->pathType == ERROR) {
+        destroyPath(nowPath);
+        return -1;
+    }
+
+    file *target = root;
+
+    for (int i = 0; i < nowPath->nameCount; i++) {
+        target = findFile(target, nowPath->name[i]);
+        if (target == NULL) {
+            destroyPath(nowPath);
+            return -1;
+        }
+    }
+
+    if (target->haveChild || (!target->isDirectory)) {
+        destroyPath(nowPath);
+        return -1;
+    }
+
+    return removeFile(target);
 }
 
 int runlink(const char *pathname) {
-    // TODO();
+    path *nowPath = analyzePath(pathname);
+
+    if (nowPath->pathType == ERROR) {
+        destroyPath(nowPath);
+        return -1;
+    }
+
+    file *target = root;
+
+    for (int i = 0; i < nowPath->nameCount; i++) {
+        target = findFile(target, nowPath->name[i]);
+        if (target == NULL) {
+            destroyPath(nowPath);
+            return -1;
+        }
+    }
+
+    if (target->isDirectory) {
+        destroyPath(nowPath);
+        return -1;
+    }
+    return removeFile(target);
 }
 
 void init_ramfs() {
