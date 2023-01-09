@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <printf.h>
 
 const int MAX_FILE_HANDLE = 65536;
 
@@ -32,7 +33,7 @@ handle *handleMap[MAX_FILE_HANDLE];
 
 typedef struct Path {
     enum {
-        FILE, ERROR
+        FL, ERROR
     } pathType;
     char **name;
     int nameCount;
@@ -64,28 +65,27 @@ void destroyPath(path *src) {
 
 path *analyzePath(const char *pathname) {
     path *ret = malloc(sizeof(*ret));
-    ret->name = malloc(sizeof(*ret->name) * 1024);
+    ret->name = malloc(sizeof(*(ret->name)) * 1025);
     ret->nameCount = 0;
-    ret->pathType = FILE;
-
+    ret->pathType = FL;
     int len = (int) strlen(pathname);
     if (pathname[0] != '/') {
         ret->pathType = ERROR;
         return ret;
     }
-
-    char *tmp = malloc(sizeof(char) * 1024);
-    memset(tmp, 0, sizeof(*tmp));
+    char *tmp = malloc(sizeof(char) * 1026);
+    memset(tmp, 0, 1026);
     int tmpLen = 0;
     bool slashRead = 0;
-
     for (int i = 0; i < len; i++) {
-        if ((pathname[i] == '/' && (!slashRead)) || i == len - 1) {
+        if (pathname[i] == '/' && (!slashRead)) {
             slashRead = 1;
-            if (checkNameValidity(tmp) && tmpLen) {
-                ret->name[ret->nameCount++] = malloc(sizeof(char) * 1024);
+            if (tmpLen && checkNameValidity(tmp)) {
+                ret->name[ret->nameCount] = malloc(sizeof(char) * 1025);
                 strcpy(ret->name[ret->nameCount], tmp);
-                memset(tmp, 0, sizeof(*tmp));
+
+                ret->nameCount++;
+                memset(tmp, 0, 1026);
                 tmpLen = 0;
             } else if (tmpLen) {
                 ret->pathType = ERROR;
@@ -99,13 +99,16 @@ path *analyzePath(const char *pathname) {
             tmp[tmpLen++] = pathname[i];
         }
     }
+    ret->name[ret->nameCount] = malloc(sizeof(char) * 1025);
+    strcpy(ret->name[ret->nameCount], tmp);
+
+    ret->nameCount++;
 
     if (!ret->nameCount) {
         ret->pathType = ERROR;
         free(tmp);
         return ret;
     }
-
     free(tmp);
     return ret;
 }
@@ -124,12 +127,12 @@ file *findFile(const file *directory, const char *name) {
         return NULL;
     }
     file *now = directory->firstChildFile;
-    while (now->nextFile != NULL) {
+    do {
         if (!strcmp(now->fileName, name)) {
             return now;
         }
         now = now->nextFile;
-    }
+    } while (now != NULL);
     return NULL;
 }
 
@@ -148,7 +151,9 @@ file *createFile(file *directory, char *fileName, bool isDirectory) {
     ret->fileName = fileName;
     ret->fileSize = 0;
     ret->fileContent = NULL;
-    directory->firstChildFile->prevFile = ret;
+    if (directory->firstChildFile != NULL) {
+        directory->firstChildFile->prevFile = ret;
+    }
     directory->firstChildFile = ret;
     return ret;
 }
@@ -271,6 +276,7 @@ ssize_t rwrite(int fd, const void *buf, size_t count) {
         memcpy(fileContentUpdate, target->fileContent, target->fileSize);
     }
     memcpy(fileContentUpdate + handleMap[fd]->offset, buf, count);
+    handleMap[fd]->offset += count;
 
     target->fileSize = fileSizeUpdate;
     free(target->fileContent);
@@ -323,7 +329,22 @@ off_t rseek(int fd, off_t offset, int whence) {
 }
 
 int rmkdir(const char *pathname) {
-    path *nowPath = analyzePath(pathname);
+    path *nowPath;
+    nowPath = analyzePath(pathname);
+//    if(!strcmp(pathname,"/a/b")){
+//        nowPath= malloc(sizeof (*nowPath));
+//        nowPath->pathType=FL;
+//        nowPath->nameCount=2;
+//        nowPath->name = malloc(sizeof (*nowPath->name)*1025);
+//        nowPath->name[0]= malloc(1025);
+//        nowPath->name[1]= malloc(1025);
+//        strcpy(nowPath->name[0],"a");
+//        strcpy(nowPath->name[1],"b");
+//        printf("%s",root->firstChildFile->fileName);
+//    }else{
+//        nowPath= analyzePath(pathname);
+//    }
+
 
     if (nowPath->pathType == ERROR) {
         destroyPath(nowPath);
@@ -402,6 +423,7 @@ int runlink(const char *pathname) {
         destroyPath(nowPath);
         return -1;
     }
+    destroyPath(nowPath);
     return removeFile(target);
 }
 
@@ -415,5 +437,4 @@ void init_ramfs() {
     root->nextFile = NULL;
     root->haveChild = false;
     root->firstChildFile = NULL;
-
 }
