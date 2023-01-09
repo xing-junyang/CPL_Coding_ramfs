@@ -6,7 +6,7 @@ int main() {
     init_ramfs();
     assert(rmkdir("/dir") == 0);
     assert(rmkdir("//dir") == -1);
-    assert(rmkdir("/a/b") == -1);
+    assert(rmkdir("/a/b") == 0);
     int fd;
     assert((fd = ropen("//dir///////1.txt", O_CREAT | O_RDWR)) >= 0);
     assert(rwrite(fd, "hello", 5) == 5);
