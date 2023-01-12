@@ -112,7 +112,7 @@ path *analyzePath(const char *pathname) {
 }
 
 int findEmptyHandle() {
-    for (int i = 0; i < MAX_FILE_HANDLE; i++) {
+    for (int i = 0; i < 65536; i++) {
         if (handleMap[i] == NULL) {
             return i;
         }
