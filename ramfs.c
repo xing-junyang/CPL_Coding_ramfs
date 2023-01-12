@@ -4,8 +4,6 @@
 #include <ctype.h>
 #include <printf.h>
 
-const int MAX_FILE_HANDLE = 65536;
-
 /* To store all file and directories */
 typedef struct File {
     /* Common properties */
@@ -29,7 +27,7 @@ typedef struct FileHandle {
     file *targetFile;
     size_t offset;
 } handle;
-handle *handleMap[MAX_FILE_HANDLE];
+handle *handleMap[65536];
 
 typedef struct Path {
     enum {
@@ -59,7 +57,7 @@ void destroyPath(path *src) {
     for (int i = 0; i < src->nameCount; i++) {
         free(src->name[i]);
     }
-    free(src->name);
+//    free(src->name);
     free(src);
 }
 
@@ -73,8 +71,8 @@ path *analyzePath(const char *pathname) {
         ret->pathType = ERROR;
         return ret;
     }
-    char *tmp = malloc(sizeof(char) * 1026);
-    memset(tmp, 0, 1026);
+    char *tmp = malloc(sizeof(char) * 1025);
+    memset(tmp, 0, 1025);
     int tmpLen = 0;
     bool slashRead = 0;
     for (int i = 0; i < len; i++) {
@@ -83,9 +81,8 @@ path *analyzePath(const char *pathname) {
             if (tmpLen && checkNameValidity(tmp)) {
                 ret->name[ret->nameCount] = malloc(sizeof(char) * 1025);
                 strcpy(ret->name[ret->nameCount], tmp);
-
                 ret->nameCount++;
-                memset(tmp, 0, 1026);
+                memset(tmp, 0, 1025);
                 tmpLen = 0;
             } else if (tmpLen) {
                 ret->pathType = ERROR;
@@ -99,11 +96,11 @@ path *analyzePath(const char *pathname) {
             tmp[tmpLen++] = pathname[i];
         }
     }
-    ret->name[ret->nameCount] = malloc(sizeof(char) * 1025);
-    strcpy(ret->name[ret->nameCount], tmp);
-
-    ret->nameCount++;
-
+    if (pathname[len - 1] != '/') {
+        ret->name[ret->nameCount] = malloc(sizeof(char) * 1025);
+        strcpy(ret->name[ret->nameCount], tmp);
+        ret->nameCount++;
+    }
     if (!ret->nameCount) {
         ret->pathType = ERROR;
         free(tmp);
