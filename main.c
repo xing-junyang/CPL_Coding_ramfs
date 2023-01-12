@@ -1,6 +1,5 @@
 #include "ramfs.h"
 #include <assert.h>
-#include <string.h>
 
 int main() {
     init_ramfs();
