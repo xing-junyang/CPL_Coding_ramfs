@@ -104,6 +104,11 @@ path *analyzePath(const char *pathname) {
         }
     }
     if (pathname[len - 1] != '/') {
+        if (!checkNameValidity(tmp)) {
+            ret->pathType = ERROR;
+            free(tmp);
+            return ret;
+        }
         ret->name[ret->nameCount] = malloc(sizeof(char) * 1025);
         strcpy(ret->name[ret->nameCount], tmp);
         ret->nameCount++;
@@ -140,7 +145,7 @@ file *findFile(const file *directory, const char *name) {
     return NULL;
 }
 
-file *createFile(file *directory, char *fileName, bool isDirectory) {
+file *createFile(file *directory, const char *fileName, bool isDirectory) {
     if (!directory->isDirectory) {
         return NULL;
     }
