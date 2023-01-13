@@ -146,7 +146,8 @@ file *createFile(file *directory, char *fileName, bool isDirectory) {
     ret->isDirectory = isDirectory;
     ret->haveChild = false;
     ret->firstChildFile = NULL;
-    ret->fileName = fileName;
+    ret->fileName = malloc(strlen(fileName) * sizeof(char));
+    strcpy(ret->fileName, fileName);
     ret->fileSize = 0;
     ret->fileContent = NULL;
     if (directory->firstChildFile != NULL) {
@@ -160,6 +161,8 @@ int removeFile(file *target) {
     if (target == NULL) {
         return -1;
     }
+
+    free(target->fileName);
 
     file *directory = target->fatherFile;
 
@@ -329,20 +332,6 @@ off_t rseek(int fd, off_t offset, int whence) {
 int rmkdir(const char *pathname) {
     path *nowPath;
     nowPath = analyzePath(pathname);
-//    if(!strcmp(pathname,"/a/b")){
-//        nowPath= malloc(sizeof (*nowPath));
-//        nowPath->pathType=FL;
-//        nowPath->nameCount=2;
-//        nowPath->name = malloc(sizeof (*nowPath->name)*1025);
-//        nowPath->name[0]= malloc(1025);
-//        nowPath->name[1]= malloc(1025);
-//        strcpy(nowPath->name[0],"a");
-//        strcpy(nowPath->name[1],"b");
-//        printf("%s",root->firstChildFile->fileName);
-//    }else{
-//        nowPath= analyzePath(pathname);
-//    }
-
 
     if (nowPath->pathType == ERROR) {
         destroyPath(nowPath);
