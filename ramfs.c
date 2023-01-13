@@ -36,6 +36,7 @@ typedef struct Path {
     } pathType;
     char **name;
     int nameCount;
+    bool isDirectory;
 } path;
 
 file *root;
@@ -58,7 +59,7 @@ void destroyPath(path *src) {
     for (int i = 0; i < src->nameCount; i++) {
         free(src->name[i]);
     }
-//    free(src->name);
+    free(src->name);
     free(src);
 }
 
@@ -71,6 +72,11 @@ path *analyzePath(const char *pathname) {
     if (pathname[0] != '/') {
         ret->pathType = ERROR;
         return ret;
+    }
+    if (pathname[len - 1] == '/') {
+        ret->isDirectory = 1;
+    } else {
+        ret->isDirectory = 0;
     }
     char *tmp = malloc(sizeof(char) * 1025);
     memset(tmp, 0, 1025);
@@ -189,7 +195,7 @@ int removeFile(file *target) {
 
 int ropen(const char *pathname, int flags) {
     path *nowPath = analyzePath(pathname);
-    if (nowPath->pathType == ERROR) {
+    if (nowPath->pathType == ERROR || nowPath->isDirectory) {
         destroyPath(nowPath);
         return -1;
     }
