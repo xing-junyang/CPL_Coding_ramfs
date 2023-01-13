@@ -134,7 +134,7 @@ file *findFile(const file *directory, const char *name) {
     return NULL;
 }
 
-file *createFile(file *directory, const char *fileName, bool isDirectory) {
+file *createFile(file *directory, char *fileName, bool isDirectory) {
     if (!directory->isDirectory) {
         return NULL;
     }
@@ -146,7 +146,8 @@ file *createFile(file *directory, const char *fileName, bool isDirectory) {
     ret->isDirectory = isDirectory;
     ret->haveChild = false;
     ret->firstChildFile = NULL;
-    ret->fileName = malloc(strlen(fileName) * sizeof(char));
+    ret->fileName = malloc((strlen(fileName) + 1) * sizeof(char));
+    memset(ret->fileName, 0, (strlen(fileName) + 1) * sizeof(char));
     strcpy(ret->fileName, fileName);
     ret->fileSize = 0;
     ret->fileContent = NULL;
@@ -229,12 +230,12 @@ int ropen(const char *pathname, int flags) {
 
     handleMap[ret]->rd = 1;
     handleMap[ret]->wr = 0;
-    if (flags & O_WRONLY) {
-        handleMap[ret]->rd = 0;
-        handleMap[ret]->wr = 1;
-    }
     if (flags & O_RDWR) {
         handleMap[ret]->rd = 1;
+        handleMap[ret]->wr = 1;
+    }
+    if (flags & O_WRONLY) {
+        handleMap[ret]->rd = 0;
         handleMap[ret]->wr = 1;
     }
 
@@ -243,7 +244,7 @@ int ropen(const char *pathname, int flags) {
     }
 
     if (flags & O_APPEND) {
-        handleMap[ret]->offset = target->fileSize - 1;
+        handleMap[ret]->offset = target->fileSize;
     } else {
         handleMap[ret]->offset = 0;
     }
@@ -295,7 +296,7 @@ ssize_t rread(int fd, void *buf, size_t count) {
 
     size_t readSize = min(count, max(0, target->fileSize - handleMap[fd]->offset));
     memcpy(buf, target->fileContent + handleMap[fd]->offset, readSize);
-    handleMap[fd]->offset += count;
+    handleMap[fd]->offset += readSize;
 
     return readSize;
 }
