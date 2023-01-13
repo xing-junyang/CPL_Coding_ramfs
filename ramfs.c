@@ -134,7 +134,7 @@ file *findFile(const file *directory, const char *name) {
     return NULL;
 }
 
-file *createFile(file *directory, char *fileName, bool isDirectory) {
+file *createFile(file *directory, const char *fileName, bool isDirectory) {
     if (!directory->isDirectory) {
         return NULL;
     }
