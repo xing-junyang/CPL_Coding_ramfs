@@ -263,7 +263,7 @@ int rclose(int fd) {
 }
 
 ssize_t rwrite(int fd, const void *buf, size_t count) {
-    if (handleMap[fd] == NULL || handleMap[fd]->isDirectory || (!handleMap[fd]->rd)) {
+    if (handleMap[fd] == NULL || handleMap[fd]->isDirectory || (!handleMap[fd]->wr)) {
         return -1;
     }
 
