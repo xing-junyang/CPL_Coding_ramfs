@@ -277,16 +277,14 @@ ssize_t rwrite(int fd, const void *buf, size_t count) {
     }
     file *target = handleMap[fd]->targetFile;
     size_t fileSizeUpdate = max(target->fileSize, handleMap[fd]->offset + count);
-    void *fileContentUpdate = malloc(fileSizeUpdate);
-    memset(fileContentUpdate, 0, fileSizeUpdate);
-    if (target->fileContent != NULL) {
-        memcpy(fileContentUpdate, target->fileContent, target->fileSize);
+    if (target->fileContent == NULL) {
+        target->fileContent = malloc(fileSizeUpdate);
+    } else {
+        target->fileContent = realloc(target->fileContent, fileSizeUpdate);
     }
-    memcpy(fileContentUpdate + handleMap[fd]->offset, buf, count);
+    memcpy(target->fileContent + handleMap[fd]->offset, buf, count);
     handleMap[fd]->offset += count;
     target->fileSize = fileSizeUpdate;
-    free(target->fileContent);
-    target->fileContent = fileContentUpdate;
     return count;
 }
 
