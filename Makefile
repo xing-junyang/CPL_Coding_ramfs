@@ -25,5 +25,5 @@ submit:
 	@cd .. && zip -qr ${FILE} ${BASE}/.git
 	@echo "Created submission archive ${FILE}"
 	@curl -m 5 -w "\n" -X POST -F "TOKEN=${TOKEN}" -F "FILE=@${FILE}" \
-		https://oj.cpl.icu/api/v2/submission/lab
+		http://public.oj.cpl.icu/api/v2/submission/lab
 	@rm -r ${TEMP}
