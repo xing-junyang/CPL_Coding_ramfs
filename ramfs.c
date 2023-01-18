@@ -118,8 +118,6 @@ path *analyzePath(const char *pathname) {
     }
     if (!ret->nameCount) {
         ret->pathType = ERROR;
-        free(tmp);
-        return ret;
     }
     free(tmp);
     return ret;
@@ -379,6 +377,7 @@ int rrmdir(const char *pathname) {
         destroyPath(nowPath);
         return -1;
     }
+    destroyPath(nowPath);
     return removeFile(target);
 }
 
