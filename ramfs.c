@@ -176,7 +176,6 @@ int removeFile(file *target) {
     if (target == NULL) {
         return -1;
     }
-    free(target->fileName);
     file *directory = target->fatherFile;
     if (directory->firstChildFile == target) {
         directory->firstChildFile = target->nextFile;
@@ -186,16 +185,16 @@ int removeFile(file *target) {
             directory->haveChild = true;
             target->nextFile->prevFile = directory;
         }
-        free(target);
-        return 0;
     } else {
         target->prevFile->nextFile = target->nextFile;
         if (target->nextFile != NULL) {
             target->nextFile->prevFile = target->prevFile;
         }
-        free(target);
-        return 0;
     }
+    free(target->fileName);
+    free(target->fileContent);
+    free(target);
+    return 0;
 }
 
 int ropen(const char *pathname, int flags) {
@@ -245,6 +244,7 @@ int ropen(const char *pathname, int flags) {
     }
     if (flags & O_TRUNC && (!newCreatedFile) && handleMap[ret]->wr == 1 && (!handleMap[ret]->isDirectory)) {
         memset(target->fileContent, 0, target->fileSize);
+        target->fileSize = 0;
     }
     if (flags & O_APPEND) {
         handleMap[ret]->offset = target->fileSize;
