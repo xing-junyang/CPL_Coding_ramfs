@@ -92,7 +92,6 @@ path *analyzePath(const char *pathname) {
             slashRead = 1;
             if (tmpLen && checkNameValidity(tmp)) {
                 ret->name[ret->nameCount] = malloc(sizeof(char) * 1025);
-                tmp[tmpLen] = 0;
                 strcpy(ret->name[ret->nameCount], tmp);
                 ret->nameCount++;
                 tmpLen = 0;
@@ -106,6 +105,7 @@ path *analyzePath(const char *pathname) {
         } else {
             slashRead = 0;
             tmp[tmpLen++] = pathname[i];
+            tmp[tmpLen] = 0;
         }
     }
     if (pathname[len - 1] != '/') {
@@ -115,7 +115,6 @@ path *analyzePath(const char *pathname) {
             return ret;
         }
         ret->name[ret->nameCount] = malloc(sizeof(char) * 1025);
-        tmp[tmpLen] = 0;
         strcpy(ret->name[ret->nameCount], tmp);
         ret->nameCount++;
     }
