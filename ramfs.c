@@ -59,6 +59,9 @@ bool checkNameValidity(const char *str) {
 }
 
 void destroyPath(path *src) {
+    if (src == NULL) {
+        return;
+    }
     for (int i = 0; i < src->nameCount; i++) {
         free(src->name[i]);
     }
@@ -82,7 +85,6 @@ path *analyzePath(const char *pathname) {
         ret->isDirectory = 0;
     }
     char *tmp = malloc(sizeof(char) * 1025);
-    memset(tmp, 0, 1025);
     int tmpLen = 0;
     bool slashRead = 0;
     for (int i = 0; i < len; i++) {
@@ -90,9 +92,9 @@ path *analyzePath(const char *pathname) {
             slashRead = 1;
             if (tmpLen && checkNameValidity(tmp)) {
                 ret->name[ret->nameCount] = malloc(sizeof(char) * 1025);
+                tmp[tmpLen] = 0;
                 strcpy(ret->name[ret->nameCount], tmp);
                 ret->nameCount++;
-                memset(tmp, 0, 1025);
                 tmpLen = 0;
             } else if (tmpLen) {
                 ret->pathType = ERROR;
@@ -113,6 +115,7 @@ path *analyzePath(const char *pathname) {
             return ret;
         }
         ret->name[ret->nameCount] = malloc(sizeof(char) * 1025);
+        tmp[tmpLen] = 0;
         strcpy(ret->name[ret->nameCount], tmp);
         ret->nameCount++;
     }
@@ -159,7 +162,6 @@ file *createFile(file *directory, const char *fileName, bool isDirectory) {
     ret->haveChild = false;
     ret->firstChildFile = NULL;
     ret->fileName = malloc((strlen(fileName) + 1) * sizeof(char));
-    memset(ret->fileName, 0, (strlen(fileName) + 1) * sizeof(char));
     strcpy(ret->fileName, fileName);
     ret->fileSize = 0;
     ret->fileContent = NULL;
@@ -241,7 +243,6 @@ int ropen(const char *pathname, int flags) {
         handleMap[ret]->wr = 1;
     }
     if (flags & O_TRUNC && (!newCreatedFile) && handleMap[ret]->wr == 1 && (!handleMap[ret]->isDirectory)) {
-        memset(target->fileContent, 0, target->fileSize);
         target->fileSize = 0;
     }
     if (flags & O_APPEND) {
@@ -301,10 +302,7 @@ ssize_t rread(int fd, void *buf, size_t count) {
 }
 
 off_t rseek(int fd, off_t offset, int whence) {
-    if (fd < 0) {
-        return -1;
-    }
-    if (handleMap[fd] == NULL) {
+    if (fd < 0 || handleMap[fd] == NULL || fd > 65536) {
         return -1;
     }
     switch (whence) {
