@@ -243,6 +243,7 @@ int ropen(const char *pathname, int flags) {
         handleMap[ret]->wr = 1;
     }
     if (flags & O_TRUNC && (!newCreatedFile) && handleMap[ret]->wr == 1 && (!handleMap[ret]->isDirectory)) {
+        memset(target->fileContent, 0, target->fileSize);
         target->fileSize = 0;
     }
     if (flags & O_APPEND) {
