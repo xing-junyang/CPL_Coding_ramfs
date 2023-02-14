@@ -13,8 +13,8 @@
 #define SEEK_END 2
 
 //To make the project compatible with macOS
-typedef int64_t ssize_t;
-typedef uint64_t size_t;
+//typedef int64_t ssize_t;
+//typedef uint64_t size_t;
 typedef int64_t off_t;
 
 int ropen(const char *pathname, int flags);

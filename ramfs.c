@@ -302,7 +302,7 @@ ssize_t rread(int fd, void *buf, size_t count) {
 }
 
 off_t rseek(int fd, off_t offset, int whence) {
-    if (fd < 0 || handleMap[fd] == NULL || fd > 65536) {
+    if (fd < 0 || fd >= 65536|| handleMap[fd] == NULL ) {
         return -1;
     }
     switch (whence) {
