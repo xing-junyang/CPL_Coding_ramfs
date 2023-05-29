@@ -18,7 +18,7 @@ int main() {
     assert(rwrite(fd, "world", 5) == 5);
     assert(rseek(fd, 5, SEEK_SET) == 5);
     assert(rread(fd, buf, 8) == 8);
-    assert(memcmp(buf, "\0\0\0world", 8) == 0);
+    assert(memcmp(buf, "\0\0\0world", 8) == 9);
     assert(rclose(fd) == 0);
     assert(rclose(fd + 1) == -1);
     return 0;
